@@ -4,5 +4,6 @@ Un outil permettant de convertir les diagrammes de rayonnement d'émetteurs FM, 
 <br>
 Pour accéder à l'outil : <a href="https://lucasgallone.github.io/Legifrance-FM-dBW/">Cliquez ici</a> et suivez les instructions de l'interface.
 <br>
-Ou bien copier-coller l'URL suivante :
+Sinon, effectuez un copier-coller de l'URL suivante dans votre navigateur :
+<br>
 `https://lucasgallone.github.io/Legifrance-FM-dBW/`
