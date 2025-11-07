@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <title>Convertisseur de diagrammes de rayonnement FM Légifrance en dBW</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* CSS de base pour la clarté et la structure */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        .container {
+            max-width: 1000px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #007bff;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            resize: vertical;
+            font-size: 14px;
+        }
+        button {
+            padding: 12px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        #resultats {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .bouton-principal {
+            background-color: #007bff;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>📻 Convertisseur de diagrammes FM Légifrance en dBW</h1>
+
+        <p>
+            Cet outil permet de convertir les valeurs de diagrammes de rayonnement d'émetteurs FM, dont les autorisations ont été publiées sur le site Légifrance, au format dBW.
+			<br>
+			<br>
+			Collez le texte intégral de la décision Légifrance à convertir dans la zone ci-dessous, puis cliquez sur le bouton "Analyser le texte".
+			<br>
+			<br>
+            <strong>Attention : La copie du texte doit être réalisée en cliquant sur le bouton "Copier le texte" en haut à droite de la page de décision Légifrance (À côté du bouton "Imprimer"). Ne copiez pas le contenu de la page manuellement ou avec CTRL+A.</strong>
+        </p>
+
+        <textarea id="input-text" rows="20" placeholder="Collez le texte de la décision ici..." onfocus="this.placeholder=''" onblur="this.placeholder='Collez le texte de la décision ici...'"></textarea>
+        
+        <button onclick="analyserEtConvertir()">Analyser le texte</button>
+        
+        <p id="statut-message" style="margin-top: 15px; font-weight: bold;"></p>
+
+        <div id="resultats" style="display:none;">
+            <div id="export-text-container">
+                </div>
+            
+            <div id="tableau-converti-container">
+                </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
