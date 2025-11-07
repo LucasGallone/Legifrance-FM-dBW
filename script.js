@@ -453,7 +453,8 @@ function analyserEtConvertir() {
 document.addEventListener('DOMContentLoaded', function() {
     const inputTextarea = document.getElementById('input-text');
     if (inputTextarea) {
-        // Efface la valeur mémorisée par le navigateur
+        // Permet de vider le champ où le texte de décision est collé
         inputTextarea.value = ''; 
     }
+
 });
