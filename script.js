@@ -412,7 +412,7 @@ function analyserEtConvertir() {
     } catch(e) { /* Ignorer */ }
 
     if (inputText.trim().length < 100) {
-         statutMessage.textContent = "❌ Échec : Le contenu n'a pas pu être traité. Veuillez effectuer un nouveau copier-coller du texte de la décision et recommencer.";
+         statutMessage.textContent = "❌ Échec : Le contenu n'a pas pu être traité. Veuillez effectuer un nouveau copier-coller du texte de la décision et recommencer.";
          resultatsSection.style.display = 'block';
          return;
     }
@@ -449,3 +449,11 @@ function analyserEtConvertir() {
         afficherSelectionAnnexe(ANNEXES_META);
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const inputTextarea = document.getElementById('input-text');
+    if (inputTextarea) {
+        // Efface la valeur mémorisée par le navigateur
+        inputTextarea.value = ''; 
+    }
+});
