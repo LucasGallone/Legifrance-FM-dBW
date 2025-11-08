@@ -1,8 +1,77 @@
+// Variable globale pour la langue actuelle (initialisation par défaut en français)
+let currentLang = 'fr'; 
+
 // Variable globale pour stocker les métadonnées des annexes trouvées
 let ANNEXES_META = [];
 const LOG_BASE_10 = Math.log(10); 
 
-// --- Fonctions utilitaires ---
+// --- Fonctions de traduction  ---
+
+// Fonction utilitaire pour récupérer le texte traduit
+function getText(key, replacements = {}) {
+    if (typeof MESSAGES === 'undefined') return `[i18n ERROR: ${key}]`; 
+    
+    let text = MESSAGES[currentLang][key] || MESSAGES['fr'][key] || `[MISSING KEY: ${key}]`;
+    
+    // Remplace les placeholders {placeholder}
+    for (const [placeholder, value] of Object.entries(replacements)) {
+        text = text.replace(`{${placeholder}}`, value);
+    }
+    return text;
+}
+
+// Fonction pour traduire les éléments statiques du HTML
+function translatePage() {
+    document.querySelectorAll('[data-i18n]').forEach(element => {
+        const key = element.getAttribute('data-i18n');
+        if (key) {
+            element.textContent = getText(key);
+        }
+    });
+
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
+        const key = element.getAttribute('data-i18n-placeholder');
+        if (key) {
+            element.placeholder = getText(key);
+        }
+    });
+}
+
+// Définit la langue, met à jour l'état visuel du bouton et enregistre le choix
+function setLanguage(lang) {
+    currentLang = lang;
+    localStorage.setItem('userLang', lang);
+    translatePage();
+    
+    const frButton = document.getElementById('lang-fr');
+    const enButton = document.getElementById('lang-en');
+    
+    if (frButton && enButton) {
+        frButton.classList.remove('active');
+        enButton.classList.remove('active');
+        
+        if (lang === 'fr') {
+            frButton.classList.add('active');
+        } else if (lang === 'en') {
+            enButton.classList.add('active');
+        }
+    }
+
+    document.getElementById('resultats').style.display = 'none';
+    document.getElementById('statut-message').textContent = '';
+}
+
+// Fonction pour restaurer le placeholder du textarea après onblur
+function translatePlaceholder() {
+    const inputTextarea = document.getElementById('input-text');
+    if (inputTextarea && !inputTextarea.value) {
+        inputTextarea.placeholder = getText('inputPlaceholder');
+    }
+}
+
+
+// --- Fonctions d'Analyse (Reste du code d'analyse des annexes) ---
+
 function nettoyerTexte(texte) {
     let cleaned = texte.replace(/\r\n|\r/g, '\n'); 
     cleaned = cleaned.replace(/[\t\u00A0\u2000-\u200A\u202F\u205F\u3000]/g, ' '); 
@@ -32,7 +101,6 @@ function extraireMaxERP(blocTexte) {
         } else if (unite === 'kw') {
             dBW = (10 * Math.log(valeur) / LOG_BASE_10 + 30);
         } else if (unite === 'w') {
-            // Calcul de la PAR sans arrondi
             dBW = (10 * Math.log(valeur) / LOG_BASE_10);
         } else if (unite === 'dbw') {
             dBW = valeur;
@@ -91,12 +159,8 @@ function genererChaineTexteCompacte(tousLesResultats) {
             erp_dbw_non_arrondi = 0; 
         }
 
-        // 1. Arrondi à la première décimale (ex: 14.45 -> 14.5)
         const erp_decimal_str = erp_dbw_non_arrondi.toFixed(1);
-        
-        // 2. Remplacement du point par la virgule (X,X)
         let erp_formatte = erp_decimal_str.replace('.', ',');
-        
         const estNegatif = erp_formatte.startsWith('-');
 
         if (estNegatif) {
@@ -132,7 +196,6 @@ function extraireDonneesEtCompleter(blocTexte, meta) {
     
     let blocDonneesTexte = lignes.slice(debutAnalyseIndex).join('\n');
     
-    // Gérer le cas "Limitation du rayonnement : néant"
     if (blocDonneesTexte.toLowerCase().includes('néant')) {
         const donneesResultat = [];
         for (let azimut = 0; azimut < 360; azimut += 10) {
@@ -163,7 +226,6 @@ function extraireDonneesEtCompleter(blocTexte, meta) {
         tousLesNombres.push(match[1].replace(',', '.')); 
     }
 
-    // Traitement des données par paires (Azimut, Attenuation)
     const donneesResultat = [];
 
     for (let i = 0; i < tousLesNombres.length; i += 2) {
@@ -189,25 +251,24 @@ function extraireDonneesEtCompleter(blocTexte, meta) {
     return donneesResultat;
 }
 
-// Fonction utilitaire pour générer le message d'alerte "Limitation du rayonnement : néant"
 function genererMessageAttentuationZero(tousLesResultats) {
     if (tousLesResultats.length === 0) return '';
     
     const isNeantCase = tousLesResultats.every(data => data.is_neant === true);
 
     if (isNeantCase) {
+        // Retourne directement la balise HTML avec le texte traduit
+        const message = getText('warningNeant');
+        
         return `
             <p style="color: #856404; background-color: #fff3cd; border: 1px solid #ffeeba; padding: 10px; border-radius: 4px; font-weight: bold;">
-                ⚠️ ATTENTION : Aucun diagramme de rayonnement n'a pu être trouvé pour cette annexe.
-				<br>
-				Le convertisseur utilise une valeur d'atténuation de 0 dB pour tous les azimuts.
+                ${message}
             </p>
         `;
     }
     return '';
 }
 
-// Fonction pour copier le texte de sortie dans le presse-papiers
 function copierTexteDeSortie() {
     const outputTextarea = document.getElementById('output-text');
     const statusMessage = document.getElementById('copy-status-message');
@@ -216,32 +277,41 @@ function copierTexteDeSortie() {
         outputTextarea.select(); 
         outputTextarea.setSelectionRange(0, 99999); 
         
-        navigator.clipboard.writeText(outputTextarea.value)
-            .then(() => {
-                // Succès : Affichage du message de succès
-                statusMessage.textContent = 'Texte copié !';
-                statusMessage.style.color = '#155724';
-                statusMessage.style.fontWeight = 'bold';
-                
-                // Effacement du message après 2 secondes
-                setTimeout(() => {
-                    statusMessage.textContent = '';
-                    statusMessage.style.color = 'initial';
-                    statusMessage.style.fontWeight = 'initial';
-                }, 2000);
-            })
-            .catch(err => {
-                // Échec : Gestion de l'erreur
-                console.error('Erreur de copie:', err);
-                statusMessage.textContent = 'La copie automatique a échoué. Merci de copier manuellement le contenu.';
-                statusMessage.style.color = 'red';
-                setTimeout(() => {
-                    statusMessage.textContent = '';
-                    statusMessage.style.color = 'initial';
-                }, 5000); // Temps étendu pour le message d'erreur
-            });
+        // Utilisation de document.execCommand('copy') pour la compatibilité dans l'environnement iframe
+        try {
+            document.execCommand('copy');
+            statusMessage.textContent = getText('copySuccess');
+            statusMessage.style.color = '#155724';
+            statusMessage.style.fontWeight = 'bold';
+            
+            setTimeout(() => {
+                statusMessage.textContent = '';
+                statusMessage.style.color = 'initial';
+                statusMessage.style.fontWeight = 'initial';
+            }, 2000);
+        } catch (err) {
+            console.error('Erreur de copie:', err);
+            statusMessage.textContent = getText('copyFail');
+            statusMessage.style.color = 'red';
+            setTimeout(() => {
+                statusMessage.textContent = '';
+                statusMessage.style.color = 'initial';
+            }, 5000); 
+        }
     }
 }
+
+/**
+ * Défile la fenêtre vers la section des résultats bruts, en la centrant.
+ * Mise à jour de block: 'start' à block: 'center'.
+ */
+function scrollToResults() {
+    const exportTextContainer = document.getElementById('export-text-container');
+    if (exportTextContainer) {
+        exportTextContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
 
 function traiterResultats(tousLesResultats, nombreBlocsTraites) {
     const statutMessage = document.getElementById('statut-message');
@@ -249,59 +319,73 @@ function traiterResultats(tousLesResultats, nombreBlocsTraites) {
     const tableContainer = document.getElementById('tableau-converti-container');
     const exportTextContainer = document.getElementById('export-text-container');
 
+    // Nettoyage avant affichage
     tableContainer.innerHTML = '';
     
-    // Message de succès pour la conversion
-    statutMessage.textContent = `✅ Conversion réalisée avec succès : Les différentes valeurs ont été converties au format dBW.`;
+    statutMessage.textContent = getText('statusSuccess');
 
     const messageAlerte = genererMessageAttentuationZero(tousLesResultats);
-
     const chaineCompacte = genererChaineTexteCompacte(tousLesResultats);
     
-    // --- Affichage du texte brut et du bouton de copie ---
+    // --- Affichage du bloc de texte brut ---
     exportTextContainer.innerHTML = `
         <h3 style="display: flex; align-items: center; justify-content: space-between;">
-            <span>Texte brut à copier pour l'importation dans la base de données :</span>
+            <span>${getText('titleExport')}</span>
             <span id="copy-status-message" style="font-size: 0.9em;"></span>
         </h3>
         <div style="display: flex; align-items: center; margin-bottom: 20px;">
             <textarea id="output-text" rows="3" readonly style="width: 100%; font-family: monospace; cursor: copy; margin-right: 10px;" onclick="this.select();">${chaineCompacte}</textarea>
             <button type="button" onclick="copierTexteDeSortie()" class="bouton-principal" style="flex-shrink: 0; padding: 10px 15px; background-color: #007bff; color: white;">
-                Copier
+                ${getText('buttonCopy')}
             </button>
         </div>
     `;
 
-    // --- Extraction et affichage de la valeur de référence en dBW ---
+    // --- Affichage du tableau ---
+    
     let parMaxInfo = '';
+    let htmlTable = '';
+    
     if (tousLesResultats.length > 0) {
         const maxERP_Value = tousLesResultats[0].maxERP;
+        // La valeur doit être formatée pour l'affichage (toFixed(2) et virgule)
         const maxERP_Affiche = maxERP_Value.toFixed(2).replace('.', ','); 
-        parMaxInfo = `<p style="font-weight: bold; margin-bottom: 10px;">💡 Valeur de référence pour la PAR max : ${maxERP_Affiche} dBW</p>`;
+        
+        // Utilisation correcte du replacement dans getText
+        parMaxInfo = `<p style="font-weight: bold; margin-bottom: 10px;">${getText('parReferenceInfo', { value: maxERP_Affiche })}</p>`;
+        
+        htmlTable = parMaxInfo + messageAlerte + '<table class="result-table">'; 
+        htmlTable += `<thead><tr>
+                        <th>${getText('colZone')}</th>
+                        <th>${getText('colFrequency')}</th>
+                        <th>${getText('colAzimuth')}</th>
+                        <th>${getText('colAttenuation')}</th>
+                        <th>${getText('colConverted')}</th>
+                    </tr></thead><tbody>`;
+        
+        const donneesTrieesPourTableau = tousLesResultats.sort((a, b) => a.azimut - b.azimut);
+        
+        donneesTrieesPourTableau.forEach(data => {
+            const valeurConvertie = convertirEnDBW(data.attenuation, data.maxERP);
+            
+            htmlTable += '<tr>';
+            htmlTable += `<td>${data.zone}</td>`;
+            htmlTable += `<td>${data.frequence}</td>`;
+            htmlTable += `<td>${data.azimut}</td>`;
+            htmlTable += `<td>${data.attenuation}</td>`;
+            htmlTable += `<td>${String(valeurConvertie).replace('.', ',')}</td>`; 
+            htmlTable += '</tr>';
+        });
+        
+        htmlTable += '</tbody></table>';
     }
 
-    // --- Affichage du tableau de vérification ---
-    let htmlTable = parMaxInfo + messageAlerte + '<table>'; 
-    htmlTable += '<thead><tr><th>Zone Géographique</th><th>Fréquence</th><th>Azimut (degrés)</th><th>Atténuation (dB)</th><th>✅ Valeurs converties en dBW</th></tr></thead><tbody>';
-    
-    const donneesTrieesPourTableau = tousLesResultats.sort((a, b) => a.azimut - b.azimut);
-    
-    donneesTrieesPourTableau.forEach(data => {
-        const valeurConvertie = convertirEnDBW(data.attenuation, data.maxERP);
-        
-        htmlTable += '<tr>';
-        htmlTable += `<td>${data.zone}</td>`;
-        htmlTable += `<td>${data.frequence}</td>`;
-        htmlTable += `<td>${data.azimut}</td>`;
-        htmlTable += `<td>${data.attenuation}</td>`;
-        htmlTable += `<td>${String(valeurConvertie).replace('.', ',')}</td>`; 
-        htmlTable += '</tr>';
-    });
-    
-    htmlTable += '</tbody></table>';
-
+    // Assignation du HTML complet au conteneur du tableau
     tableContainer.innerHTML = htmlTable;
     resultatsSection.style.display = 'block';
+
+    // Fonction de défilement automatique vers les résultats après conversion
+    scrollToResults();
 }
 
 function afficherSelectionAnnexe(annexes) {
@@ -314,10 +398,9 @@ function afficherSelectionAnnexe(annexes) {
     exportTextContainer.innerHTML = ''; 
 
     statutMessage.innerHTML = `
-        <h3 style="color: #007bff;">Cette décision comporte ${annexes.length} annexes. Laquelle doit-on traiter ?</h3>
+        <h3 style="color: #007bff;">${getText('errorMultipleAnnexes', { count: annexes.length })}</h3>
     `;
 
-    // Table des chiffres Romains afin de traiter jusqu'à 100 annexes par décision
     const chiffresRomains = [
         'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 
         'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX',
@@ -328,13 +411,12 @@ function afficherSelectionAnnexe(annexes) {
         'LXI', 'LXII', 'LXIII', 'LXIV', 'LXV', 'LXVI', 'LXVII', 'LXVIII', 'LXIX', 'LXX',
         'LXXI', 'LXXII', 'LXXIII', 'LXXIV', 'LXXV', 'LXXVI', 'LXXVII', 'LXXVIII', 'LXXIX', 'LXXX',
         'LXXXI', 'LXXXII', 'LXXXIII', 'LXXXIV', 'LXXXV', 'LXXXVI', 'LXXXVII', 'LXXXVIII', 'LXXXIX', 'XC',
-        'XCI', 'XCII', 'XCIII', 'XCIV', 'XCV', 'XCVI', 'XCVII', 'XCVIII', 'XCIX', 'C'
+        'XCI', 'XCII', 'XCIII', 'XCV', 'XCVI', 'XCVII', 'XCVIII', 'XCIX', 'C'
     ];
 
     let selectionHTML = '<form id="form-selection-annexe">';
     annexes.forEach((meta, index) => {
         const parAffichee = meta.parMaxText.replace('.', ','); 
-        
         const annexeRomain = chiffresRomains[index] || `(${index + 1})`;
 
         selectionHTML += `
@@ -349,7 +431,7 @@ function afficherSelectionAnnexe(annexes) {
     });
     selectionHTML += `
         <button type="button" onclick="traiterSelectionAnnexe()" class="bouton-principal" style="background-color: #28a745; margin-top: 20px;">
-            Traiter l'annexe sélectionnée </button>
+            ${getText('buttonProcessAnnex')} </button>
     </form>`;
 
     tableContainer.innerHTML = selectionHTML;
@@ -361,7 +443,13 @@ function traiterSelectionAnnexe() {
     const selection = form.querySelector('input[name="annexe-select"]:checked');
     
     if (!selection) {
-        alert("Veuillez sélectionner une annexe à traiter.");
+        const statutMessage = document.getElementById('statut-message');
+        statutMessage.textContent = getText('alertSelectAnnex');
+        statutMessage.style.color = 'red';
+        setTimeout(() => {
+            statutMessage.textContent = getText('errorMultipleAnnexes', { count: ANNEXES_META.length });
+            statutMessage.style.color = 'initial';
+        }, 3000);
         return;
     }
 
@@ -377,9 +465,8 @@ function traiterSelectionAnnexe() {
     } else {
         const statutMessage = document.getElementById('statut-message');
         
-        // Déclaration du tableau de chiffres Romains pour pouvoir l'indexer
         const CHIFFRES_ROMAINS_100 = [
-		    'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 
+            'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 
             'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX',
             'XXI', 'XXII', 'XXIII', 'XXIV', 'XXV', 'XXVI', 'XXVII', 'XXVIII', 'XXIX', 'XXX',
             'XXXI', 'XXXII', 'XXXIII', 'XXXIV', 'XXXV', 'XXXVI', 'XXXVII', 'XXXVIII', 'XXXIX', 'XL',
@@ -388,12 +475,12 @@ function traiterSelectionAnnexe() {
             'LXI', 'LXII', 'LXIII', 'LXIV', 'LXV', 'LXVI', 'LXVII', 'LXVIII', 'LXIX', 'LXX',
             'LXXI', 'LXXII', 'LXXIII', 'LXXIV', 'LXXV', 'LXXVI', 'LXXVII', 'LXXVIII', 'LXXIX', 'LXXX',
             'LXXXI', 'LXXXII', 'LXXXIII', 'LXXXIV', 'LXXXV', 'LXXXVI', 'LXXXVII', 'LXXXVIII', 'LXXXIX', 'XC',
-            'XCI', 'XCII', 'XCIII', 'XCIV', 'XCV', 'XCVI', 'XCVII', 'XCVIII', 'XCIX', 'C'
+            'XCI', 'XCII', 'XCIII', 'XCV', 'XCVI', 'XCVII', 'XCVIII', 'XCIX', 'C'
         ];
-		
+        
         const annexeNom = CHIFFRES_ROMAINS_100[index] || `(${index + 1})`; 
-		
-        statutMessage.textContent = `❌ Échec de la détection pour l'Annexe ${annexeNom} : Le format du tableau de rayonnement est inhabituel.`;
+        
+        statutMessage.textContent = `❌ Échec de la détection pour l'Annexe ${annexeNom} : ${getText('errorDetectionFail')}`;
         document.getElementById('resultats').style.display = 'block';
     }
 }
@@ -412,9 +499,9 @@ function analyserEtConvertir() {
     } catch(e) { /* Ignorer */ }
 
     if (inputText.trim().length < 100) {
-         statutMessage.textContent = "❌ Échec : Le contenu n'a pas pu être traité. Veuillez effectuer un nouveau copier-coller du texte de la décision et recommencer.";
-         resultatsSection.style.display = 'block';
-         return;
+           statutMessage.textContent = getText('errorShortText');
+           resultatsSection.style.display = 'block';
+           return;
     }
     
     inputText = nettoyerTexte(inputText);
@@ -430,7 +517,7 @@ function analyserEtConvertir() {
     });
 
     if (ANNEXES_META.length === 0) {
-        statutMessage.textContent = "❌ Échec : Aucune annexe contenant une PAR max n'a été trouvée.";
+        statutMessage.textContent = getText('errorNoAnnexes');
         resultatsSection.style.display = 'block';
         return;
     }
@@ -442,7 +529,7 @@ function analyserEtConvertir() {
         if (resultats.length > 0) {
             traiterResultats(resultats, 1);
         } else {
-            statutMessage.textContent = "❌ Échec de la détection : Le format du tableau de rayonnement est inhabituel.";
+            statutMessage.innerHTML = getText('errorDetectionFail');
             resultatsSection.style.display = 'block';
         }
     } else {
@@ -450,11 +537,26 @@ function analyserEtConvertir() {
     }
 }
 
+// Persistance de la langue et correction du cache
 document.addEventListener('DOMContentLoaded', function() {
-    const inputTextarea = document.getElementById('input-text');
-    if (inputTextarea) {
-        // Permet de vider le champ où le texte de décision est collé
-        inputTextarea.value = ''; 
+    
+    const savedLang = localStorage.getItem('userLang');
+    
+    if (savedLang) {
+        currentLang = savedLang;
     }
 
+    const inputTextarea = document.getElementById('input-text');
+    if (inputTextarea) {
+        // S'assurer que le placeholder est correctement traduit au chargement si le champ est vide
+        translatePlaceholder();
+        inputTextarea.value = ''; 
+    }
+    
+    translatePage();
+    
+    const activeButton = document.getElementById(`lang-${currentLang}`);
+    if (activeButton) {
+        activeButton.classList.add('active');
+    }
 });

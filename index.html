@@ -71,26 +71,54 @@
         .bouton-principal {
             background-color: #007bff;
         }
+        
+        /* CSS pour le SÉLECTEUR DE LANGUE */
+        .lang-option {
+            padding: 8px 12px;
+            background-color: #f8f8f8;
+            color: #333;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 14px;
+            background-color: initial; 
+        }
+        .lang-option.active {
+            background-color: #007bff; 
+            color: white;
+            font-weight: bold;
+        }
+        .lang-option:not(:last-child) {
+            border-right: 1px solid #ccc;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>📻 Convertisseur de diagrammes FM Légifrance en dBW</h1>
+        
+        <div style="margin-bottom: 20px; text-align: right;">
+            <div id="lang-toggle-container" style="display: inline-flex; border: 1px solid #ccc; border-radius: 4px; overflow: hidden;">
+                <button id="lang-fr" type="button" onclick="setLanguage('fr')" class="lang-option">Français</button>
+                <button id="lang-en" type="button" onclick="setLanguage('en')" class="lang-option">English</button>
+            </div>
+        </div>
+
+        <h1 data-i18n="appTitle">📻 Convertisseur de diagrammes FM Légifrance en dBW</h1>
 
         <p>
-            Cet outil permet de convertir les valeurs de diagrammes de rayonnement d'émetteurs FM, dont les autorisations ont été publiées sur le site Légifrance, au format dBW.
-			<br>
-			<br>
-			Collez le texte intégral de la décision Légifrance à convertir dans la zone ci-dessous, puis cliquez sur le bouton "Analyser le texte".
-			<br>
-			<br>
-            <strong>Attention : La copie du texte doit être réalisée en cliquant sur le bouton "Copier le texte" en haut à droite de la page de décision Légifrance (À côté du bouton "Imprimer"). Ne copiez pas le contenu de la page manuellement ou avec CTRL+A.</strong>
+            <span data-i18n="introText1"></span>
+            <br>
+            <br>
+            <span data-i18n="introText2"></span>
+            <br>
+            <br>
+            <strong><span data-i18n="introText3"></span></strong>
         </p>
 
-        <textarea id="input-text" rows="20" placeholder="Collez le texte de la décision ici..." onfocus="this.placeholder=''" onblur="this.placeholder='Collez le texte de la décision ici...'"></textarea>
+        <textarea id="input-text" rows="20" placeholder="Collez le texte de la décision ici..." data-i18n-placeholder="inputPlaceholder" onfocus="this.placeholder=''" onblur="translatePlaceholder()"></textarea>
         
-        <button onclick="analyserEtConvertir()">Analyser le texte</button>
+        <button onclick="analyserEtConvertir()" data-i18n="analyzeButton">Analyser le texte</button>
         
         <p id="statut-message" style="margin-top: 15px; font-weight: bold;"></p>
 
@@ -103,6 +131,7 @@
         </div>
     </div>
 
+    <script src="lang.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
