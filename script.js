@@ -5,7 +5,7 @@ let currentLang = 'fr';
 let ANNEXES_META = [];
 const LOG_BASE_10 = Math.log(10); 
 
-// --- Fonctions de traduction  ---
+// --- Fonctions de traduction ---
 
 // Fonction utilitaire pour récupérer le texte traduit
 function getText(key, replacements = {}) {
@@ -70,7 +70,7 @@ function translatePlaceholder() {
 }
 
 
-// --- Fonctions d'Analyse (Reste du code d'analyse des annexes) ---
+// --- Fonctions d'Analyse ---
 
 function nettoyerTexte(texte) {
     let cleaned = texte.replace(/\r\n|\r/g, '\n'); 
@@ -303,13 +303,24 @@ function copierTexteDeSortie() {
 
 /**
  * Défile la fenêtre vers la section des résultats bruts, en la centrant.
- * Mise à jour de block: 'start' à block: 'center'.
+ * (Utilisé après le traitement d'une annexe unique/sélectionnée)
  */
 function scrollToResults() {
     const exportTextContainer = document.getElementById('export-text-container');
     if (exportTextContainer) {
         exportTextContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+}
+
+/**
+ * Défile la fenêtre vers le bas de la page.
+ * (Utilisé lorsque plusieurs annexes sont trouvées pour montrer la liste de sélection)
+ */
+function scrollToBottom() {
+    window.scrollTo({
+        top: document.body.scrollHeight,
+        behavior: 'smooth'
+    });
 }
 
 
@@ -351,7 +362,6 @@ function traiterResultats(tousLesResultats, nombreBlocsTraites) {
         // La valeur doit être formatée pour l'affichage (toFixed(2) et virgule)
         const maxERP_Affiche = maxERP_Value.toFixed(2).replace('.', ','); 
         
-        // Utilisation correcte du replacement dans getText
         parMaxInfo = `<p style="font-weight: bold; margin-bottom: 10px;">${getText('parReferenceInfo', { value: maxERP_Affiche })}</p>`;
         
         htmlTable = parMaxInfo + messageAlerte + '<table class="result-table">'; 
@@ -373,6 +383,7 @@ function traiterResultats(tousLesResultats, nombreBlocsTraites) {
             htmlTable += `<td>${data.frequence}</td>`;
             htmlTable += `<td>${data.azimut}</td>`;
             htmlTable += `<td>${data.attenuation}</td>`;
+            // Remplacement du point par la virgule pour l'affichage de la valeur convertie
             htmlTable += `<td>${String(valeurConvertie).replace('.', ',')}</td>`; 
             htmlTable += '</tr>';
         });
@@ -384,7 +395,7 @@ function traiterResultats(tousLesResultats, nombreBlocsTraites) {
     tableContainer.innerHTML = htmlTable;
     resultatsSection.style.display = 'block';
 
-    // Fonction de défilement automatique vers les résultats après conversion
+    // Défilement automatique vers le champ de texte brut après conversion
     scrollToResults();
 }
 
@@ -436,6 +447,9 @@ function afficherSelectionAnnexe(annexes) {
 
     tableContainer.innerHTML = selectionHTML;
     resultatsSection.style.display = 'block';
+    
+    // Défilement vers la liste de sélection des annexes lorsque plusieurs sont détectées
+    scrollToBottom();
 }
 
 function traiterSelectionAnnexe() {
@@ -443,6 +457,7 @@ function traiterSelectionAnnexe() {
     const selection = form.querySelector('input[name="annexe-select"]:checked');
     
     if (!selection) {
+        // Remplacement de l'alerte JS native par un message traduit dans le statut
         const statutMessage = document.getElementById('statut-message');
         statutMessage.textContent = getText('alertSelectAnnex');
         statutMessage.style.color = 'red';
@@ -480,7 +495,7 @@ function traiterSelectionAnnexe() {
         
         const annexeNom = CHIFFRES_ROMAINS_100[index] || `(${index + 1})`; 
         
-        statutMessage.textContent = `❌ Échec de la détection pour l'Annexe ${annexeNom} : ${getText('errorDetectionFail')}`;
+        statutMessage.innerHTML = `${getText('errorDetectionFail')}`;
         document.getElementById('resultats').style.display = 'block';
     }
 }
