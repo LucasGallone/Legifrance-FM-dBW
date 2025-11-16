@@ -2,6 +2,9 @@
 Un outil permettant de convertir les diagrammes de rayonnement d'émetteurs FM, dont les autorisations ont été publiées sur le site Légifrance, au format dBW.
 <br>
 <br>
+Le processus de conversion repose sur une formule de calcul produite par DK2GO.
+<br>
+<br>
 Pour accéder à l'outil : <a href="https://lucasgallone.github.io/Legifrance-FM-dBW/">Cliquez ici</a> et suivez les instructions de l'interface.
 <br>
 <br>
