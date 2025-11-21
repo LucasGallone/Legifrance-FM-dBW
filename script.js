@@ -93,7 +93,7 @@ function extraireMaxERP(blocTexte) {
     
     if (match) {
         let valeur = parseFloat(match[1].replace(',', '.')); 
-        const unite = match[2].toLowerCase();                  
+        const unite = match[2].toLowerCase();                  
         let dBW;
         
         if (valeur === 0) {
@@ -156,7 +156,8 @@ function genererChaineTexteCompacte(tousLesResultats) {
             const data = pointsMap.get(azimut);
             erp_dbw_non_arrondi = data.maxERP - data.attenuation;
         } else {
-            erp_dbw_non_arrondi = 0; 
+            // Si l'azimut est introuvable, on utilise 0 comme valeur d'atténuation.
+            erp_dbw_non_arrondi = pointsMap.size > 0 ? pointsMap.values().next().value.maxERP : 0;
         }
 
         const erp_decimal_str = erp_dbw_non_arrondi.toFixed(1);
@@ -164,6 +165,7 @@ function genererChaineTexteCompacte(tousLesResultats) {
         const estNegatif = erp_formatte.startsWith('-');
 
         if (estNegatif) {
+            // Retirer le signe '-' pour le padding, puis le rajouter.
             let valeurAbsoluePaddee = erp_formatte.substring(1).padStart(LONGUEUR_CIBLE - 1, '0');
             erp_formatte = '-' + valeurAbsoluePaddee;
             
@@ -186,6 +188,7 @@ function extraireDonneesEtCompleter(blocTexte, meta) {
     let debutAnalyseIndex = -1;
 
     for (let i = 0; i < lignes.length; i++) {
+        // Commence l'analyse après la ligne de Puissance Apparente Rayonnée (PAR max.)
         if (lignes[i].includes('Puissance apparente rayonnée (PAR max.)')) {
             debutAnalyseIndex = i + 1; 
             break;
@@ -210,24 +213,36 @@ function extraireDonneesEtCompleter(blocTexte, meta) {
         }
         return donneesResultat;
     }
+    
+    // 1. Suppression des titres des colonnes et autres textes non numériques
+    blocDonneesTexte = blocDonneesTexte.replace(/AZIMUT\s*\(degrés\)/gi, ' ');
+    blocDonneesTexte = blocDonneesTexte.replace(/ATTÉNUATION\s*\(dB\)\s*\(\d+\)/gi, ' ');
+    blocDonneesTexte = blocDonneesTexte.replace(/AZIMUT\s*\(degrés\)\s*ATTÉNUATION\s*\(dB\)\s*\(\d+\)/gi, ' ');
+    
+    // 2. Suppression de toutes les parenthèses et de leur contenu (ex: (1))
+    blocDonneesTexte = blocDonneesTexte.replace(/\([^)]+\)/g, ' ');
 
-    blocDonneesTexte = blocDonneesTexte.replace(/Azimut\s*\(degrés\)/gi, '');
-    blocDonneesTexte = blocDonneesTexte.replace(/Atténuation\s*\(dB\)\s*\(\d+\)/gi, ''); 
-    blocDonneesTexte = blocDonneesTexte.replace(/\(\d+\)/g, ''); 
-    blocDonneesTexte = blocDonneesTexte.replace(/[^a-zA-Z0-9\s\.,]/g, ' '); 
+    // 3. Remplacement de tous les caractères non numériques, sauf les séparateurs valides (virgule, point), par un espace.
+    blocDonneesTexte = blocDonneesTexte.replace(/[^0-9\s\.,-]/g, ' '); 
+
+    // 4. Compactage des espaces multiples en un seul espace, et suppression des espaces début/fin
     blocDonneesTexte = blocDonneesTexte.replace(/\s+/g, ' ').trim(); 
 
+    // RegEx pour trouver tous les nombres (entiers ou décimaux avec point/virgule)
     const regexNombres = /(\d+([\.,]\d+)?)/g;
     
     let tousLesNombres = [];
     let match;
     
     while ((match = regexNombres.exec(blocDonneesTexte)) !== null) {
+        // On remplace la virgule par le point pour le parseFloat
         tousLesNombres.push(match[1].replace(',', '.')); 
     }
 
+    // --- PROCESSUS DE PAIRES (AZIMUT, ATTÉNUATION) ---
     const donneesResultat = [];
 
+    // On parcourt les nombres deux par deux
     for (let i = 0; i < tousLesNombres.length; i += 2) {
         const azimutStr = tousLesNombres[i];
         const attenuationStr = tousLesNombres[i + 1];
@@ -236,6 +251,7 @@ function extraireDonneesEtCompleter(blocTexte, meta) {
             const azimut = parseInt(azimutStr);
             const attenuation = parseFloat(attenuationStr);
             
+            // Vérification de la validité des données
             if (!isNaN(azimut) && azimut >= 0 && azimut < 360 && azimut % 10 === 0 && !isNaN(attenuation)) {
                 donneesResultat.push({ 
                     azimut: azimut, 
@@ -362,6 +378,7 @@ function traiterResultats(tousLesResultats, nombreBlocsTraites) {
         // La valeur doit être formatée pour l'affichage (toFixed(2) et virgule)
         const maxERP_Affiche = maxERP_Value.toFixed(2).replace('.', ','); 
         
+        // Utilisation correcte du replacement dans getText
         parMaxInfo = `<p style="font-weight: bold; margin-bottom: 10px;">${getText('parReferenceInfo', { value: maxERP_Affiche })}</p>`;
         
         htmlTable = parMaxInfo + messageAlerte + '<table class="result-table">'; 
@@ -395,7 +412,7 @@ function traiterResultats(tousLesResultats, nombreBlocsTraites) {
     tableContainer.innerHTML = htmlTable;
     resultatsSection.style.display = 'block';
 
-    // Défilement automatique vers le champ de texte brut après conversion
+    // Défilement vers le centre de la zone d'export
     scrollToResults();
 }
 
@@ -448,7 +465,7 @@ function afficherSelectionAnnexe(annexes) {
     tableContainer.innerHTML = selectionHTML;
     resultatsSection.style.display = 'block';
     
-    // Défilement vers la liste de sélection des annexes lorsque plusieurs sont détectées
+    // Défilement vers la liste des annexes
     scrollToBottom();
 }
 
@@ -495,7 +512,7 @@ function traiterSelectionAnnexe() {
         
         const annexeNom = CHIFFRES_ROMAINS_100[index] || `(${index + 1})`; 
         
-        statutMessage.innerHTML = `${getText('errorDetectionFail')}`;
+        statutMessage.textContent = `❌ Échec de la détection pour l'Annexe ${annexeNom} : ${getText('errorDetectionFail')}`;
         document.getElementById('resultats').style.display = 'block';
     }
 }
@@ -552,7 +569,6 @@ function analyserEtConvertir() {
     }
 }
 
-// Persistance de la langue et correction du cache
 document.addEventListener('DOMContentLoaded', function() {
     
     const savedLang = localStorage.getItem('userLang');
