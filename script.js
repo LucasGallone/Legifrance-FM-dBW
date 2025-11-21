@@ -93,7 +93,7 @@ function extraireMaxERP(blocTexte) {
     
     if (match) {
         let valeur = parseFloat(match[1].replace(',', '.')); 
-        const unite = match[2].toLowerCase();                  
+        const unite = match[2].toLowerCase();             
         let dBW;
         
         if (valeur === 0) {
@@ -217,6 +217,10 @@ function extraireDonneesEtCompleter(blocTexte, meta) {
     blocDonneesTexte = blocDonneesTexte.replace(/[^a-zA-Z0-9\s\.,]/g, ' '); 
     blocDonneesTexte = blocDonneesTexte.replace(/\s+/g, ' ').trim(); 
 
+    // Exclusion des nombres à 4 chiffres afin de prévenir les "artefacts" causés par l'année indiquée à la fin de la décision.
+    blocDonneesTexte = blocDonneesTexte.replace(/\b(19\d{2}|20\d{2}|2100)\b/g, ' ');
+
+
     const regexNombres = /(\d+([\.,]\d+)?)/g;
     
     let tousLesNombres = [];
@@ -236,6 +240,7 @@ function extraireDonneesEtCompleter(blocTexte, meta) {
             const azimut = parseInt(azimutStr);
             const attenuation = parseFloat(attenuationStr);
             
+            // On vérifie que le premier nombre est bien un azimut valide (multiple de 10)
             if (!isNaN(azimut) && azimut >= 0 && azimut < 360 && azimut % 10 === 0 && !isNaN(attenuation)) {
                 donneesResultat.push({ 
                     azimut: azimut, 
@@ -296,6 +301,7 @@ function copierTexteDeSortie() {
             setTimeout(() => {
                 statusMessage.textContent = '';
                 statusMessage.style.color = 'initial';
+                statusMessage.style.fontWeight = 'initial';
             }, 5000); 
         }
     }
